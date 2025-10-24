@@ -78,7 +78,7 @@ DATABASE_URL=sqlite:///./app.db
  Collect your SID and Token from the Twilio Console.
   
 Step 6: Run the backend server:
-Python -m app.main.py
+Python -m app.main
 The backend runs at   http://127.0.0.1:8000
 You can check the API docs here:
   http://127.0.0.1:8000/docs
