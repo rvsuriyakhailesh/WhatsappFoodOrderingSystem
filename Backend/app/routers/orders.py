@@ -48,24 +48,23 @@ def get_order(order_id: int):
 
 @router.patch("/{order_id}", response_model=OrderRead)
 def update_status(order_id: int, status_in: OrderStatusUpdate, background_tasks: BackgroundTasks):
-    
-    if status_in.status not in OrderStatus:
+    # Handle string or enum input
+    status_value = status_in.status
+    if isinstance(status_value, OrderStatus):
+        status_value = status_value.value
+    elif isinstance(status_value, str):
+        status_value = status_value.lower().replace(" ", "-")
+        if status_value not in [s.value for s in OrderStatus]:
+            raise HTTPException(status_code=400, detail="Invalid status")
+    else:
         raise HTTPException(status_code=400, detail="Invalid status")
-    updated = crud.update_order_status(order_id, status_in.status.value)
+
+    updated = crud.update_order_status(order_id, status_value)
     if not updated:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    msg = f"Order #{order_id} status updated to {status_in.status.value}"
+    msg = f"Order #{order_id} status updated to {status_value}"
     background_tasks.add_task(whatsapp_client.send_whatsapp_message, updated.whatsapp_number, msg)
     return updated
 
-@router.delete("/{order_id}", status_code=204)
-def cancel(order_id: int, background_tasks: BackgroundTasks):
-    order = crud.get_order(order_id)
-    if not order:
-        raise HTTPException(status_code=404, detail="Order not found")
-    updated = crud.cancel_order(order_id)
- 
-    msg = f"Your order #{order_id} has been canceled."
-    background_tasks.add_task(whatsapp_client.send_whatsapp_message, updated.whatsapp_number, msg)
-    return
+
